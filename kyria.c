@@ -28,7 +28,6 @@ static void render_wpm_graph(void) {
             // there is a whole screen worth, turn the display off and
             // wait until there is something to do
             if (zero_bar_count > OLED_DISPLAY_WIDTH) {
-                oled_off();
                 return;
             }
             zero_bar_count++;
