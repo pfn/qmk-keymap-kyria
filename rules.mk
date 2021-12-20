@@ -14,8 +14,8 @@ GRAVE_ESC_ENABLE = no
 SPACE_CADET_ENABLE = no
 MAGIC_ENABLE = yes
 MUSIC_ENABLE = no
-SRC += kyria.c keymap_configurator.c
+SRC += kyria.c $(KEYMAP_OUTPUT)/src/keymap_configurator.c
 
 .SECONDEXPANSION:
-keymap_configurator.c: $$(KEYMAP_PATH)/pfn.json
+$(KEYMAP_OUTPUT)/src/keymap_configurator.c: $$(KEYMAP_PATH)/pfn.json
 	$(QMK_BIN) json2c --quiet --output $@ $<
