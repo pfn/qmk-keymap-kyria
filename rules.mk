@@ -1,12 +1,14 @@
 BOOTLOADER = qmk-hid
 BOOTLOADER_SIZE = 512
 
+RGBLIGHT_ENABLE = no      # Enable keyboard RGB underglow
+RGB_MATRIX_ENABLE = yes     # Enable keyboard RGB matrix (do not use together with RGBLIGHT_ENABLE)
+
 WPM_ENABLE = yes
 OLED_ENABLE = yes
 LTO_ENABLE = yes
 OLED_DRIVER = SSD1306   # Enables the use of OLED displays
 ENCODER_ENABLE = yes       # Enables the use of one or more encoders
-RGBLIGHT_ENABLE = yes      # Enable keyboard RGB underglow
 SWAP_HANDS_ENABLE = yes
 MOUSEKEY_ENABLE = yes
 

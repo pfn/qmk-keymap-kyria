@@ -1,4 +1,47 @@
 #include QMK_KEYBOARD_H
+#include <string.h>
+
+// RGB Matrix naming
+#if defined(RGB_MATRIX_ENABLE)
+#    include <rgb_matrix.h>
+
+#    if defined(RGB_MATRIX_EFFECT)
+#        undef RGB_MATRIX_EFFECT
+#    endif  // defined(RGB_MATRIX_EFFECT)
+
+#    define RGB_MATRIX_EFFECT(x) RGB_MATRIX_EFFECT_##x,
+enum {
+    RGB_MATRIX_EFFECT_NONE,
+#    include "rgb_matrix_effects.inc"
+#    undef RGB_MATRIX_EFFECT
+#    ifdef RGB_MATRIX_CUSTOM_KB
+#        include "rgb_matrix_kb.inc"
+#    endif
+#    ifdef RGB_MATRIX_CUSTOM_USER
+#        include "rgb_matrix_user.inc"
+#    endif
+};
+
+#    define RGB_MATRIX_EFFECT(x)    \
+        case RGB_MATRIX_EFFECT_##x: \
+            return #x;
+const char *rgb_matrix_name(uint8_t effect) {
+    switch (effect) {
+        case RGB_MATRIX_EFFECT_NONE:
+            return "NONE";
+#    include "rgb_matrix_effects.inc"
+#    undef RGB_MATRIX_EFFECT
+#    ifdef RGB_MATRIX_CUSTOM_KB
+#        include "rgb_matrix_kb.inc"
+#    endif
+#    ifdef RGB_MATRIX_CUSTOM_USER
+#        include "rgb_matrix_user.inc"
+#    endif
+        default:
+            return "UNKNOWN";
+    }
+}
+#endif  // defined(RGB_MATRIX_ENABLE)
 
 #ifdef OLED_ENABLE
 oled_rotation_t oled_init_user(oled_rotation_t rotation) { return OLED_ROTATION_180; }
@@ -131,7 +174,20 @@ void render_keyboard_status(void) {
     } else {
         oled_write_P(PSTR("\n\n"), false);
     }
-    oled_write_P(PSTR("\nPerry Nguyen\npfnguyen@hanhuy.com\n(510) 473-7796"), false);
+    oled_write_P(PSTR("\nRGB:\n"), false);
+    char buf[20] = {0};
+    memcpy(buf, rgb_matrix_name(rgb_matrix_get_mode()), 20);
+    for (int i = 1; i < 20; ++i) {
+        if (buf[i] == 0)
+            break;
+        else if (buf[i] == '_')
+            buf[i] = ' ';
+        else if (buf[i - 1] == ' ')
+            buf[i] = buf[i] > 90 ? buf[i] - 32 : buf[i];
+        else if (buf[i - 1] != ' ')
+            buf[i] = buf[i] < 97 ? buf[i] + 32 : buf[i];
+    }
+    oled_write_ln(buf, false);
 }
 
 static uint8_t max(uint8_t a, uint8_t b) {
