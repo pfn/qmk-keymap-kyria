@@ -1,5 +1,6 @@
 #include QMK_KEYBOARD_H
 #include <string.h>
+#include "keymap.h"
 
 // RGB Matrix naming
 #if defined(RGB_MATRIX_ENABLE)
@@ -48,6 +49,11 @@ oled_rotation_t oled_init_user(oled_rotation_t rotation) { return OLED_ROTATION_
 
 // taken from https://github.com/brickbots/qmk_firmware/blob/brickbots_dev/keyboards/kyria/keymaps/brickbots/keymap.c#L179
 #ifdef WPM_ENABLE
+
+static uint8_t max(uint8_t a, uint8_t b) {
+    return a > b ? a : b;
+}
+
 static void render_wpm_graph(void) {
     static uint16_t wpm_graph_timer = 0;
     static uint8_t  zero_bar_count  = 0;
@@ -128,31 +134,68 @@ static void render_wpm_graph(void) {
         }
     }
 }
-#    endif
+
+// a rolling 65 second window of max wpm
+static void render_wpm_status(void) {
+    static uint8_t wpm_samples[65] = {0}; // 65 to match uint16_t max
+    static uint8_t wpm_sample_bucket = 0;
+    static uint16_t wpm_sample_timer = 0;
+    static uint8_t max_wpm = 0;
+    static uint8_t avg_wpm = 0;
+
+    if (timer_elapsed(wpm_sample_timer) > 250) {
+        wpm_sample_timer = timer_read();
+        uint8_t bucket = (wpm_sample_timer / 1000) % 65;
+        wpm_samples[bucket] = max(bucket == wpm_sample_bucket ? wpm_samples[bucket] : 0, get_current_wpm());
+        wpm_sample_bucket = bucket;
+        max_wpm = 0;
+        uint16_t wpm_sum = 0;
+        for (uint8_t i = 0, count = 0; i < 65; ++i) {
+            max_wpm = max(max_wpm, wpm_samples[i]);
+            wpm_sum += wpm_samples[i];
+            if (wpm_samples[i] > 0) {
+                ++count;
+            }
+            avg_wpm = wpm_sum / (count ? count : 1);
+        }
+    }
+
+    render_wpm_graph();
+    oled_write_P(PSTR("WPM: "), false);
+    oled_write(get_u8_str(get_current_wpm(), ' '), false);
+    oled_write_P(PSTR(" / "), false);
+    oled_write(get_u8_str(avg_wpm, ' '), false);
+    oled_write_P(PSTR(" / "), false);
+    oled_write(get_u8_str(max_wpm, ' '), false);
+}
+#endif
 
 void render_keyboard_status(void) {
     // Host Keyboard Layer Status
     oled_write_P(PSTR("Layer: "), false);
     switch (get_highest_layer(layer_state | default_layer_state)) {
-        case 0:
+        case _QWERTY:
             oled_write_P(PSTR("QWERTY\n"), false);
             break;
-        case 1:
+        case _COLEMAK:
+            oled_write_P(PSTR("COLEMAK\n"), false);
+            break;
+        case _NUM:
             oled_write_P(PSTR("Numpad\n"), false);
             break;
-        case 2:
+        case _SYM:
             oled_write_P(PSTR("Symbols\n"), false);
             break;
-        case 3:
+        case _NAV:
             oled_write_P(PSTR("Nav\n"), false);
             break;
-        case 4:
+        case _MOUSE:
             oled_write_P(PSTR("Mouse\n"), false);
             break;
-        case 5:
+        case _MEDIA:
             oled_write_P(PSTR("Media\n"), false);
             break;
-        case 6:
+        case _ADJUST:
             oled_write_P(PSTR("RGB\n"), false);
             break;
         default:
@@ -190,71 +233,35 @@ void render_keyboard_status(void) {
     oled_write_ln(buf, false);
 }
 
-static uint8_t max(uint8_t a, uint8_t b) {
-    return a > b ? a : b;
-}
-
-// a rolling 65 second window of max wpm
-void render_wpm_status(void) {
-    static uint8_t wpm_samples[65] = {0}; // 65 to match uint16_t max
-    static uint8_t wpm_sample_bucket = 0;
-    static uint16_t wpm_sample_timer = 0;
-    static uint8_t max_wpm = 0;
-    static uint8_t avg_wpm = 0;
-
-    if (timer_elapsed(wpm_sample_timer) > 250) {
-        wpm_sample_timer = timer_read();
-        uint8_t bucket = (wpm_sample_timer / 1000) % 65;
-        wpm_samples[bucket] = max(bucket == wpm_sample_bucket ? wpm_samples[bucket] : 0, get_current_wpm());
-        wpm_sample_bucket = bucket;
-        max_wpm = 0;
-        uint16_t wpm_sum = 0;
-        for (uint8_t i = 0, count = 0; i < 65; ++i) {
-            max_wpm = max(max_wpm, wpm_samples[i]);
-            wpm_sum += wpm_samples[i];
-            if (wpm_samples[i] > 0) {
-                ++count;
-            }
-            avg_wpm = wpm_sum / (count ? count : 1);
-        }
-    }
-
-    render_wpm_graph();
-    oled_write_P(PSTR("WPM: "), false);
-    oled_write(get_u8_str(get_current_wpm(), ' '), false);
-    oled_write_P(PSTR(" / "), false);
-    oled_write(get_u8_str(avg_wpm, ' '), false);
-    oled_write_P(PSTR(" / "), false);
-    oled_write(get_u8_str(max_wpm, ' '), false);
-}
-
 bool oled_task_user(void) {
     if (is_keyboard_master()) {
         render_keyboard_status();
     } else {
+        #ifdef SPLIT_WPM_ENABLE
         render_wpm_status();
+        #endif
     }
     return false;
 }
 #endif
 
 #ifdef ENCODER_ENABLE
+#define MAKE_KC(mod, tru, els) (mod ? (tru) : (els))
+
 bool encoder_update_user(uint8_t index, bool clockwise) {
 
-    if (index == 0) {
-        // Volume control
-        if (clockwise) {
-            tap_code(KC_VOLU);
-        } else {
-            tap_code(KC_VOLD);
-        }
-    } else if (index == 1) {
-        // Page up/Page down
-        if (clockwise) {
-            tap_code(KC_WH_U);
-        } else {
-            tap_code(KC_WH_D);
-        }
+    bool is_shift = get_mods() & MOD_MASK_SHIFT;
+    if (!index) {
+        if (is_shift) {
+            if (clockwise)
+                rgb_matrix_step();
+            else
+                rgb_matrix_step_reverse();
+        } else
+            tap_code(clockwise ? KC_VOLU : KC_VOLD);
+    } else {
+        // Mouse wheel
+        tap_code(MAKE_KC(is_shift, clockwise ? KC_WH_R : KC_WH_L, clockwise ? KC_WH_D : KC_WH_U));
     }
     return false;
 }
