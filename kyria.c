@@ -251,8 +251,12 @@ bool oled_task_user(void) {
 bool encoder_update_user(uint8_t index, bool clockwise) {
 
     bool is_shift = get_mods() & MOD_MASK_SHIFT;
+    bool is_alt = get_mods() & MOD_MASK_ALT;
+    bool is_gui = get_mods() & MOD_MASK_GUI;
     if (!index) {
-        if (is_shift) {
+        if (is_gui) {
+            tap_code16(clockwise ? KC_GRV : LSFT(KC_GRV));
+        } else if (is_shift) {
             if (clockwise)
                 rgb_matrix_step();
             else
@@ -260,8 +264,17 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
         } else
             tap_code(clockwise ? KC_VOLU : KC_VOLD);
     } else {
-        // Mouse wheel
-        tap_code(MAKE_KC(is_shift, clockwise ? KC_WH_R : KC_WH_L, clockwise ? KC_WH_D : KC_WH_U));
+        if (is_gui || is_alt)
+            tap_code16(clockwise ? KC_TAB : LSFT(KC_TAB));
+        else {// Mouse wheel
+            if (is_shift) {
+                unregister_code(KC_LEFT_SHIFT);
+            }
+            tap_code(MAKE_KC(is_shift, clockwise ? KC_WH_R : KC_WH_L, clockwise ? KC_WH_D : KC_WH_U));
+            if (is_shift) {
+                register_code(KC_LEFT_SHIFT);
+            }
+        }
     }
     return false;
 }
