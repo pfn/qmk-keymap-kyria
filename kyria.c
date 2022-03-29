@@ -207,12 +207,13 @@ void render_keyboard_status(void) {
     oled_write_P(get_oneshot_layer() == 1 ? PSTR("NUM LOCK ") : PSTR("         "), false);
     oled_write_P(led_usb_state.caps_lock ? PSTR("CAPSLOCK ") : PSTR("         "), false);
     oled_write_P(PSTR("\n"), false);
-    if (get_mods() != 0) {
+    uint16_t mods = get_mods() | get_oneshot_mods();
+    if (mods) {
         oled_write_P(PSTR("Mods:\n"), false);
-        oled_write_P((get_mods() & MOD_MASK_SHIFT) ? PSTR("SHIFT ") : PSTR("      "), false);
-        oled_write_P((get_mods() & MOD_MASK_CTRL) ? PSTR("CTRL ") : PSTR("     "), false);
-        oled_write_P((get_mods() & MOD_MASK_ALT) ? PSTR("ALT ") : PSTR("    "), false);
-        oled_write_P((get_mods() & MOD_MASK_GUI) ? PSTR("GUI") : PSTR("    "), false);
+        oled_write_P((mods & MOD_MASK_SHIFT) ? PSTR("SHIFT ") : PSTR("      "), false);
+        oled_write_P((mods & MOD_MASK_CTRL) ? PSTR("CTRL ") : PSTR("     "), false);
+        oled_write_P((mods & MOD_MASK_ALT) ? PSTR("ALT ") : PSTR("    "), false);
+        oled_write_P((mods & MOD_MASK_GUI) ? PSTR("GUI") : PSTR("    "), false);
         oled_write_P(PSTR("\n"), false);
     } else {
         oled_write_P(PSTR("\n\n"), false);
@@ -248,11 +249,26 @@ bool oled_task_user(void) {
 #ifdef ENCODER_ENABLE
 #define MAKE_KC(mod, tru, els) (mod ? (tru) : (els))
 
+#include <stdarg.h>
+uint16_t extract_mod_kc(uint16_t mods, ...) {
+    va_list ap;
+    va_start(ap, mods);
+    uint16_t kc = KC_TRANSPARENT;
+    uint16_t result = KC_NO;
+    while (result == KC_NO && (kc = va_arg(ap, uint16_t)) != KC_NO) {
+        if (mods & MOD_BIT(kc))
+            result = kc;
+    }
+    va_end(ap);
+    return result;
+}
+
 bool encoder_update_user(uint8_t index, bool clockwise) {
 
-    bool is_shift = get_mods() & MOD_MASK_SHIFT;
-    bool is_alt = get_mods() & MOD_MASK_ALT;
-    bool is_gui = get_mods() & MOD_MASK_GUI;
+    uint16_t mods = get_mods();
+    bool is_shift = mods & MOD_MASK_SHIFT;
+    bool is_alt = mods & MOD_MASK_ALT;
+    bool is_gui = mods & MOD_MASK_GUI;
     if (!index) {
         if (is_gui) {
             tap_code16(clockwise ? KC_GRV : LSFT(KC_GRV));
@@ -268,11 +284,11 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
             tap_code16(clockwise ? KC_TAB : LSFT(KC_TAB));
         else {// Mouse wheel
             if (is_shift) {
-                unregister_code(KC_LEFT_SHIFT);
+                unregister_code(extract_mod_kc(mods, KC_LEFT_SHIFT, KC_RIGHT_SHIFT, KC_NO));
             }
             tap_code(MAKE_KC(is_shift, clockwise ? KC_WH_R : KC_WH_L, clockwise ? KC_WH_D : KC_WH_U));
             if (is_shift) {
-                register_code(KC_LEFT_SHIFT);
+                register_code(extract_mod_kc(mods, KC_LEFT_SHIFT, KC_RIGHT_SHIFT, KC_NO));
             }
         }
     }
