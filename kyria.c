@@ -1,5 +1,6 @@
 #include QMK_KEYBOARD_H
 #include <string.h>
+#include "process_keymap.h"
 #include "keymap.h"
 
 // RGB Matrix naming
@@ -263,35 +264,49 @@ uint16_t extract_mod_kc(uint16_t mods, ...) {
     return result;
 }
 
+void enforce_code(uint16_t kc) {
+    if (mod_held != KC_NO && mod_held != kc) {
+        unregister_code(mod_held);
+        mod_held = KC_NO;
+    }
+    if (mod_held == KC_NO)
+        register_code(kc);
+    mod_held = kc;
+}
+
 bool encoder_update_user(uint8_t index, bool clockwise) {
 
-    uint16_t mods = get_mods();
-    bool is_shift = mods & MOD_MASK_SHIFT;
-    bool is_alt = mods & MOD_MASK_ALT;
-    bool is_gui = mods & MOD_MASK_GUI;
-    if (!index) {
-        if (is_gui) {
-            tap_code16(clockwise ? KC_GRV : LSFT(KC_GRV));
-        } else if (is_shift) {
+    uint16_t kc = !index ? (clockwise ? KC_VOLU : KC_VOLD) : (clockwise ? KC_WH_D : KC_WH_U);
+    switch (get_highest_layer(layer_state | default_layer_state)) {
+        case _MOUSE:
+            if (index) kc = clockwise ? KC_WH_R : KC_WH_L;
+            break;
+        case _NAV:
+            if (index) kc = clockwise ? KC_PGDN : KC_PGUP;
+            break;
+        case _ADJUST:
+            kc = KC_NO;
             if (clockwise)
                 rgb_matrix_step();
             else
                 rgb_matrix_step_reverse();
-        } else
-            tap_code(clockwise ? KC_VOLU : KC_VOLD);
-    } else {
-        if (is_gui || is_alt)
-            tap_code16(clockwise ? KC_TAB : LSFT(KC_TAB));
-        else {// Mouse wheel
-            if (is_shift) {
-                unregister_code(extract_mod_kc(mods, KC_LEFT_SHIFT, KC_RIGHT_SHIFT, KC_NO));
-            }
-            tap_code(MAKE_KC(is_shift, clockwise ? KC_WH_R : KC_WH_L, clockwise ? KC_WH_D : KC_WH_U));
-            if (is_shift) {
-                register_code(extract_mod_kc(mods, KC_LEFT_SHIFT, KC_RIGHT_SHIFT, KC_NO));
-            }
-        }
+            break;
+        case _MEDIA:
+          break;
+        case _NUM:
+            enforce_code(KC_LALT);
+            kc = clockwise ? KC_TAB : LSFT(KC_TAB);
+            break;
+        case _SYM:
+            enforce_code(KC_LGUI);
+            kc = clockwise ? KC_GRV : LSFT(KC_GRV);
+            break;
     }
+    if (get_mods() & MOD_MASK_GUI && !index)
+        kc = clockwise ? KC_TAB : LSFT(KC_TAB);
+
+    if (kc != KC_NO) tap_code16(kc);
+
     return false;
 }
 #endif
