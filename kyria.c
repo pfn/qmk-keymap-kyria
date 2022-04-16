@@ -280,6 +280,10 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
     switch (get_highest_layer(layer_state | default_layer_state)) {
         case _MOUSE:
             if (index) kc = clockwise ? KC_WH_R : KC_WH_L;
+            if (!index) {
+                enforce_code(KC_LGUI);
+                kc = clockwise ? KC_TAB : LSFT(KC_TAB);
+            }
             break;
         case _NAV:
             if (index) kc = clockwise ? KC_PGDN : KC_PGUP;
@@ -292,7 +296,9 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
                 rgb_matrix_step_reverse();
             break;
         case _MEDIA:
-          break;
+            enforce_code(KC_LCTL);
+            kc = clockwise ? KC_TAB : LSFT(KC_TAB);
+            break;
         case _NUM:
             enforce_code(KC_LALT);
             kc = clockwise ? KC_TAB : LSFT(KC_TAB);
@@ -302,8 +308,6 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
             kc = clockwise ? KC_GRV : LSFT(KC_GRV);
             break;
     }
-    if (get_mods() & MOD_MASK_GUI && !index)
-        kc = clockwise ? KC_TAB : LSFT(KC_TAB);
 
     if (kc != KC_NO) tap_code16(kc);
 

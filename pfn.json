@@ -3,7 +3,7 @@
   "notes": "",
   "documentation": "\"This file is a QMK Configurator export. You can import this at <https://config.qmk.fm>. It can also be used directly with QMK's source code.\n\nTo setup your QMK environment check out the tutorial: <https://docs.qmk.fm/#/newbs>\n\nYou can convert this file to a keymap.c using this command: `qmk json2c {keymap}`\n\nYou can compile this keymap using this command: `qmk compile {keymap}`\"\n",
   "keyboard": "splitkb/kyria/rev1",
-  "keymap": "kyria_numfix",
+  "keymap": "kyria_mousing",
   "layout": "LAYOUT",
   "layers": [
     [
@@ -48,14 +48,14 @@
       "RSFT_T(KC_SLSH)",
       "KC_RSFT",
       "KC_WBAK",
-      "KC_MPRV",
+      "KC_TAB",
       "LT(2,KC_BSPC)",
       "KC_ENT",
       "ANY(SH_OS)",
       "ANY(SH_OS)",
       "KC_SPC",
       "LT(3,KC_ESC)",
-      "LT(5,KC_MNXT)",
+      "LT(5,KC_QUOT)",
       "KC_MFFD"
     ],
     [
@@ -283,8 +283,8 @@
       "KC_TRNS",
       "KC_TRNS",
       "KC_TRNS",
-      "KC_TRNS",
-      "KC_TRNS",
+      "KC_BTN1",
+      "KC_BTN2",
       "KC_MS_L",
       "KC_MS_D",
       "KC_MS_U",

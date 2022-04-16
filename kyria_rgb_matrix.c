@@ -7,6 +7,7 @@
 void matrix_init_user(void) {
     numpad_layer = _NUM;
     sym_layer = _SYM;
+    mouse_layer = _MOUSE;
     // Remap under glow LEDs to nearby keys
     g_led_config = (led_config_t) {
         {
