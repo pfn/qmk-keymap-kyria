@@ -256,7 +256,7 @@ uint16_t extract_mod_kc(uint16_t mods, ...) {
     va_start(ap, mods);
     uint16_t kc;
     uint16_t result = KC_NO;
-    while (result == KC_NO && (kc = va_arg(ap, uint16_t)) != KC_NO) {
+    while (result == KC_NO && (kc = va_arg(ap, int)) != KC_NO) {
         if (mods & MOD_BIT(kc))
             result = kc;
     }
