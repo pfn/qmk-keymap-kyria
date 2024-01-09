@@ -16,7 +16,10 @@
 
 #pragma once
 
-#define EE_HANDS
+// B0 = GPIO13 via promicro to kb2040 converter
+// https://github.com/qmk/qmk_firmware/blob/master/platforms/chibios/converters/promicro_to_kb2040/_pin_defs.h#L36
+#define SPLIT_HAND_PIN B0
+
 #define ENCODER_DIRECTION_FLIP
 #define ENCODER_RESOLUTION 2
 
